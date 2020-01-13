@@ -1,6 +1,6 @@
 #################
 # Validation of Hep C testing and diagnosis
-# Citation: Goldstein ND, Kahal D, Testa K. Accuracy of chronic Hepatitis C diagnosis in the electronic medical record: implications for bias correction approaches. Manuscript in preparation.
+# Citation: Goldstein ND, Kahal D, Testa K, Burstyn I. Accuracy of chronic Hepatitis C diagnosis in the electronic medical record: implications for recalling patients for treatment. Manuscript in preparation.
 # 4/3/19 -- Neal Goldstein
 #################
 
@@ -13,24 +13,52 @@ library(epiR) #sensitivity, specificity, predictive values
 
 ### JOIN VALIDATION DATA ###
 
-#read data
+#read data, risk cohort, universal cohort, validation of risk cohort
 load(file="Retrospective.Rdata")
+load(file="Prospective.Rdata")
 validation = read.csv("validation.csv", as.is=T, stringsAsFactors=F, na.strings="")
 
 #merge
 retro = merge(retro, validation, by.x="mrn", by.y="MRN", all.x=T, all.y=F)
 retro$Determination[is.na(retro$Determination)] = "Negative"
 
+#check whether anyone in the universal cohort had a risk factor for HCV screen; we infer this from a hep c test being ordered previously
+#also check whether anyone had previously diagnosed hcv, as again would place individuals in the risk factor group
+pro$riskfactor = NA
+pro$hepc_old = NA
+for (i in 1:nrow(pro))
+{
+  pro$riskfactor[i] = ifelse(length(retro$hepc_test_ordered[retro$mrn==pro$mrn[i]])>0, retro$hepc_test_ordered[retro$mrn==pro$mrn[i]], 0)
+  pro$hepc_old[i] = ifelse(length(retro$hepc[retro$mrn==pro$mrn[i]])>0, retro$hepc[retro$mrn==pro$mrn[i]], 0)
+}
+rm(i)
+
 #save analytic data
+rm(demo,hepc,hepc_orders,hepc_results,hiv,hiv_orders,hiv_results,validation)
 retro$mrn = NULL
 retro$name = NULL
 retro$dob = NULL
-save(retro, file="validation.RData")
+pro$mrn = NULL
+pro$name = NULL
+pro$dob = NULL
+save.image(file="validation.RData")
 
 
 ### LOAD DATA ###
 
 load("validation.RData")
+
+
+### DETERMINE INFECTION STATUS ###
+
+#ignore HCV+ lab results for 2 individuals without corresponding HCV diagnostic code: we do not know the reason for the test
+retro$Determination[which(retro$hepc==0 & (retro$Determination=="PCR Positive" | retro$Determination=="Cured"))] = "Negative"
+
+#remove W=1 individuals from universal screening era (as they would have been screened under risk factor paradigm); that is, these individuals are W=0
+pro = pro[pro$riskfactor==0 & pro$hepc_old==0, ]
+
+#create a diagnostic variable for the universal screening group
+pro$Determination = ifelse((!is.na(pro$hepc_test_pcr) & (pro$hepc_test_pcr==1)), 1, 0)
 
 
 ### ANALYSIS ###
@@ -40,61 +68,66 @@ CrossTable(retro$sex)
 CrossTable(retro$race==0)
 CrossTable(retro$ethnicity)
 CrossTable(retro$insurance==1)
-describe(retro$n_visits); IQR(retro$n_visits)
 CrossTable(retro$hepc_test_ordered)
-CrossTable(retro$hepc_test_ab)
-CrossTable(!is.na(retro$hepc_test_ab) | !is.na(retro$hepc_test_pcr))
-CrossTable(retro$hepc_test_ab)
-CrossTable(retro$hepc_test_pcr)
+CrossTable(retro$hepc_test_resulted)
 CrossTable(retro$hepc)
 CrossTable(retro$Determination=="PCR Positive" | retro$Determination=="Cured")
-CrossTable(retro$Determination=="PCR Positive" | retro$Determination=="Cured" | retro$Determination=="Probable" | retro$Determination=="Suspect")
 
-#ICD accuracy           
-#strictest definition based on documented labs or treatment
-table(retro$Determination)
-def1 = CrossTable(retro$hepc, (retro$Determination=="PCR Positive" | retro$Determination=="Cured"), prop.r=F, prop.t=F, prop.chisq=F, chisq=T)
-epi.tests(matrix(c(def1$t[4],def1$t[3],def1$t[2],def1$t[1]),nrow=2,ncol=2))
+describe(pro$last_visit_age); IQR(pro$last_visit_age)
+CrossTable(pro$sex)
+CrossTable(pro$race==0)
+CrossTable(pro$ethnicity)
+CrossTable(pro$insurance==1)
+CrossTable(pro$hepc_test_ordered)
+CrossTable(pro$hepc_test_resulted)
+CrossTable(pro$Determination)
 
-#relaxed definition incporating provider note (but w/out lab)
-table(retro$Determination)
-def2 = CrossTable(retro$hepc, (retro$Determination=="PCR Positive" | retro$Determination=="Cured" | retro$Determination=="Probable" | retro$Determination=="Suspect"), prop.r=F, prop.t=F, prop.chisq=F, chisq=T)
-epi.tests(matrix(c(def2$t[4],def2$t[3],def2$t[2],def2$t[1]),nrow=2,ncol=2))
+describe(pro$last_visit_age[pro$hepc_test_resulted==1]); IQR(pro$last_visit_age[pro$hepc_test_resulted==1])
+CrossTable(pro$sex[pro$hepc_test_resulted==1])
+CrossTable(pro$race[pro$hepc_test_resulted==1]==0)
+CrossTable(pro$ethnicity[pro$hepc_test_resulted==1])
+CrossTable(pro$insurance[pro$hepc_test_resulted==1]==1)
+#CrossTable(pro$hepc_test_ordered[pro$hepc_test_resulted==1])
+CrossTable(pro$Determination[pro$hepc_test_resulted==1])
 
-#antibody accuracy
-#strictest definition based on documented labs or treatment
-table(retro$Determination)
-def1 = CrossTable(retro$hepc_test_ab, (retro$Determination=="PCR Positive" | retro$Determination=="Cured"), prop.r=F, prop.t=F, prop.chisq=F, chisq=T)
-epi.tests(matrix(c(def1$t[4],def1$t[3],def1$t[2],def1$t[1]),nrow=2,ncol=2))
+describe(pro$last_visit_age[pro$hepc_test_resulted==0]); IQR(pro$last_visit_age[pro$hepc_test_resulted==0])
+CrossTable(pro$sex[pro$hepc_test_resulted==0])
+CrossTable(pro$race[pro$hepc_test_resulted==0]==0)
+CrossTable(pro$ethnicity[pro$hepc_test_resulted==0])
+CrossTable(pro$insurance[pro$hepc_test_resulted==0]==1)
+CrossTable(pro$hepc_test_ordered[pro$hepc_test_resulted==0])
+#CrossTable(pro$Determination[pro$hepc_test_resulted==0])
 
-#relaxed definition incporating provider note (but w/out lab)
-table(retro$Determination)
-def2 = CrossTable(retro$hepc_test_ab, (retro$Determination=="PCR Positive" | retro$Determination=="Cured" | retro$Determination=="Probable" | retro$Determination=="Suspect"), prop.r=F, prop.t=F, prop.chisq=F, chisq=T)
-epi.tests(matrix(c(def2$t[4],def2$t[3],def2$t[2],def2$t[1]),nrow=2,ncol=2))
+#compute validation metrics for risk-based cohort
+riskcohort = CrossTable(retro$hepc, (retro$Determination=="PCR Positive" | retro$Determination=="Cured"), prop.r=F, prop.t=F, prop.chisq=F, chisq=T)$t
+riskcohort
 
-#explore predictors of misclassification using confirmed or suspected definition
-emrdx = retro
-emrdx$def1 = ifelse(emrdx$Determination=="PCR Positive" | emrdx$Determination=="Cured", 1, 0)
-emrdx$def2 = ifelse(emrdx$Determination=="PCR Positive" | emrdx$Determination=="Cured" | emrdx$Determination=="Probable" | emrdx$Determination=="Suspect", 1, 0)
-emrdx$misclass = ifelse(emrdx$hepc != emrdx$def2, 1, 0)
+#re-organize table and calculate PPV
+riskcohort = matrix(c(riskcohort[4],riskcohort[3],riskcohort[2],riskcohort[1]),nrow=2,ncol=2)
+epi.tests(riskcohort)
 
-summary(glm(misclass ~ last_visit_age, data=emrdx, family=binomial()))
-summary(glm(misclass ~ sex, data=emrdx, family=binomial()))
-summary(glm(misclass ~ (race==0), data=emrdx, family=binomial()))
-summary(glm(misclass ~ ethnicity, data=emrdx, family=binomial()))
-summary(glm(misclass ~ (insurance==1), data=emrdx, family=binomial()))
-summary(glm(misclass ~ n_visits, data=emrdx, family=binomial()))
-summary(glm(misclass ~ hepc_test_ordered, data=emrdx, family=binomial()))
+#data for universal screening cohort
+universalcohort = matrix(c(0,5,0,(341-5)),nrow=2,ncol=2)
+epi.tests(universalcohort)
+NPV = c(0.97,0.99,1.00)
 
-age_model = glm(misclass ~ last_visit_age, data=emrdx, family=binomial())
-exp(coef(age_model))
-exp(confint(age_model))
+#re-classify individuals in the risk-based cohort using the mean and bounds
+riskcohort_mean = riskcohort
+riskcohort_mean[2,1] = round(sum(riskcohort_mean[2,]) * (1-NPV[2])) # Pr(X=0|W=1)
+riskcohort_mean[2,2] = round(sum(riskcohort_mean[2,]) * (NPV[2])) # Pr(X=0|W=1)
+riskcohort_mean
+epi.tests(riskcohort_mean)
 
-ethnicity_model = glm(misclass ~ ethnicity, data=emrdx, family=binomial())
-1/exp(coef(ethnicity_model))
-1/exp(confint(ethnicity_model))
+riskcohort_lo = riskcohort
+riskcohort_lo[2,1] = round(sum(riskcohort_lo[2,]) * (1-NPV[1])) # Pr(X=0|W=1)
+riskcohort_lo[2,2] = round(sum(riskcohort_lo[2,]) * (NPV[1])) # Pr(X=0|W=1)
+riskcohort_lo
+epi.tests(riskcohort_lo)
 
-#differential misclassification checks
-0.96 - 0.96*.05
-0.96 - 0.96*.1
-0.96 - 0.96*.25
+riskcohort_hi = riskcohort
+riskcohort_hi[2,1] = round(sum(riskcohort_hi[2,]) * (1-NPV[3])) # Pr(X=0|W=1)
+riskcohort_hi[2,2] = round(sum(riskcohort_hi[2,]) * (NPV[3])) # Pr(X=0|W=1)
+riskcohort_hi
+epi.tests(riskcohort_hi)
+
+
