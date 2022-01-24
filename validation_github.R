@@ -1,6 +1,6 @@
 #################
 # Validation of Hep C testing and diagnosis
-# Citation: Goldstein ND, Kahal D, Testa K, Burstyn I. Data quality in electronic health record research: an approach for validation and quantitative bias analysis for the data scientist. Manuscript in preparation.
+# Citation: Goldstein ND, Kahal D, Testa K, Gracely EJ, Burstyn I. Data quality in electronic health record research: an approach for validation and quantitative bias analysis for imperfectly ascertained health outcomes via diagnostic codes. HDSR. Manuscript in press.
 # 4/3/19 -- Neal Goldstein
 #################
 
@@ -337,13 +337,13 @@ quantile(colMeans(x_matrix), probs=c(0.025,0.5,0.975))
 
 #diagnostic plots
 par(mfrow=c(2, 2))
-plot(density(na.omit(sim_PPVs)), xlab="Positive Predictive Value", main="A)", col="#DDDDDD")
+plot(density(na.omit(sim_PPVs)), xlab="Positive Predictive Value", main="A)", col="#DDDDDD", cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_PPVs)), col="#DDDDDD", border=0)
 
-plot(density(na.omit(sim_NPVs)), xlab="Negative Predictive Value", main="B)")
+plot(density(na.omit(sim_NPVs)), xlab="Negative Predictive Value", main="B)", cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_NPVs)), col="#DDDDDD", border=0)
 
-plot(density(na.omit(sim_prev)), xlab="Prevalence", main="C)")
+plot(density(na.omit(sim_prev)), xlab="Prevalence", main="C)", cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_prev)), col="#DDDDDD", border=0)
 
 ## extension to risk factor of race
@@ -413,24 +413,24 @@ wtd.quantile(sim_RRs, q=c(0.025,0.5,0.975), weight=exp(scale(sim_ll)))
 
 #diagnostic plots
 par(mfrow=c(2, 2))
-plot(density(na.omit(sim_PPV0s)), xlab="Positive Predictive Value", main="A)", col="#DDDDDD", xlim=c(0.3,0.8))
+plot(density(na.omit(sim_PPV0s)), xlab="Positive Predictive Value", main="A)", col="#DDDDDD", xlim=c(0.3,0.8), cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_PPV0s)), col="#DDDDDD", border=0)
 lines(density(na.omit(sim_PPV1s)), col="#888888")
 polygon(density(na.omit(sim_PPV1s)), col="#888888", border=0)
-legend(0.65,18, legend="White", fill="#DDDDDD", cex=1, bty="n", x.intersp=0.2)
-legend(0.65,15.5, legend="Non-White", fill="#888888", cex=1, bty="n", x.intersp=0.2)
+legend(0.68,17, legend="White", fill="#DDDDDD", cex=1.25, bty="n", x.intersp=0.2)
+legend(0.68,14.5, legend="Non-White", fill="#888888", cex=1.25, bty="n", x.intersp=0.2)
 
-plot(density(na.omit(sim_NPV0s)), xlab="Negative Predictive Value", main="B)", col="#DDDDDD", xlim=c(0.95,1))
+plot(density(na.omit(sim_NPV0s)), xlab="Negative Predictive Value", main="B)", col="#DDDDDD", xlim=c(0.95,1), cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_NPV0s)), col="#DDDDDD", border=0)
 lines(density(na.omit(sim_NPV1s)), col="#888888")
 polygon(density(na.omit(sim_NPV1s)), col="#888888", border=0)
-legend(0.95,300, legend="White", fill="#DDDDDD", cex=1, bty="n", x.intersp=0.2)
-legend(0.95,260, legend="Non-White", fill="#888888", cex=1, bty="n", x.intersp=0.2)
+legend(0.95,300, legend="White", fill="#DDDDDD", cex=1.25, bty="n", x.intersp=0.2)
+legend(0.95,260, legend="Non-White", fill="#888888", cex=1.25, bty="n", x.intersp=0.2)
 
-plot(density(na.omit(sim_prev)), xlab="Prevalence", main="C)", col="#DDDDDD")
+plot(density(na.omit(sim_prev)), xlab="Prevalence", main="C)", col="#DDDDDD", cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_prev)), col="#DDDDDD", border=0)
 
-plot(density(na.omit(sim_RRs)), xlab="Relative Risk", main="D)", col="#DDDDDD")
+plot(density(na.omit(sim_RRs)), xlab="Relative Risk", main="D)", col="#DDDDDD", cex.axis=1.5, cex.lab=1.5)
 polygon(density(na.omit(sim_RRs)), col="#DDDDDD", border=0)
 
 #comparison
